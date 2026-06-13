@@ -8,7 +8,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
-# Suppress all background system and version warnings
+# Suppress warnings
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -19,20 +19,27 @@ st.title("🚗 Car Price Prediction Dashboard")
 st.markdown("Developed for **CodeAlpha Data Science Internship**. Built using **Pandas, Scikit-learn, and Matplotlib**.")
 
 try:
-    # Modified to look for the exact file name format from your data information
+    # Read the dataset file
     df = pd.read_csv('car data.csv')
-    df.columns = df.columns.str.strip() # Clean hidden trailing spaces in columns
+    
+    # Standardize ALL column names to remove any hidden spaces, casing bugs, or underscores
+    df.columns = df.columns.str.strip().str.replace(' ', '_')
     
     st.subheader("📋 1. Dataset Preview (Pandas DataFrame)")
     st.dataframe(df.head(), use_container_width=True)
     
-    # Feature Engineering & Preprocessing
-    # Auto-detect target column naming schemes (Selling_Price)
-    target_col = 'Selling_Price' if 'Selling_Price' in df.columns else 'Price'
+    # Map columns flexibly to handle small casing variations from the dataset (e.g., Kms_Driven vs Kms_driven)
+    col_mapping = {col.lower(): col for col in df.columns}
     
-    # Drop unique string identifiers like Car_Name to prevent model overfitting
-    if 'Car_Name' in df.columns:
-        df_clean = df.drop(columns=['Car_Name'])
+    target_col = col_mapping.get('selling_price', col_mapping.get('price', df.columns[0]))
+    year_col = col_mapping.get('year', None)
+    present_price_col = col_mapping.get('present_price', None)
+    kms_col = col_mapping.get('kms_driven', col_mapping.get('km_driven', None))
+    
+    # Drop unique string identifiers like Car_Name if it exists
+    car_name_col = col_mapping.get('car_name', None)
+    if car_name_col and car_name_col in df.columns:
+        df_clean = df.drop(columns=[car_name_col])
     else:
         df_clean = df.copy()
         
@@ -43,10 +50,10 @@ try:
     X = df_encoded.drop(columns=[target_col])
     y = df_encoded[target_col]
     
-    # Split into 80% Train and 20% Test sets
+    # Split into Train and Test sets
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     
-    # Feature Scaling for fair Linear Regression weight assignment
+    # Feature Scaling
     scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)
@@ -55,10 +62,9 @@ try:
     model = LinearRegression()
     model.fit(X_train_scaled, y_train)
     
-    # Model Predictions
     y_pred = model.predict(X_test_scaled)
     
-    # Model Evaluation Metrics
+    # Evaluation Metrics
     mae = mean_absolute_error(y_test, y_pred)
     mse = mean_squared_error(y_test, y_pred)
     r2 = r2_score(y_test, y_pred)
@@ -80,21 +86,21 @@ try:
         st.subheader("🔮 3. Interactive Pricing Sandbox")
         st.write("Adjust the features to predict a used car price live:")
         
-        # Build dynamic sliders based on dataset thresholds
-        yr_min, yr_max = int(df_clean['Year'].min()), int(df_clean['Year'].max())
+        # Build sliders safely by falling back to columns discovered by mapping helper
+        yr_min, yr_max = int(df_clean[year_col].min()), int(df_clean[year_col].max())
         year_in = st.slider("Vehicle Model Year", yr_min, yr_max, yr_max)
         
-        pr_max = float(df_clean['Present_Price'].max())
-        present_in = st.slider("Current Showroom Price (in Lakhs)", 0.0, pr_max, float(df_clean['Present_Price'].mean()))
+        pr_max = float(df_clean[present_price_col].max())
+        present_in = st.slider("Current Showroom Price (in Lakhs)", 0.0, pr_max, float(df_clean[present_price_col].mean()))
         
-        kms_max = int(df_clean['Kms_Driven'].max())
-        kms_in = st.slider("Total Kilometers Driven", 0, kms_max, int(df_clean['Kms_Driven'].mean()))
+        kms_max = int(df_clean[kms_col].max())
+        kms_in = st.slider("Total Kilometers Driven", 0, kms_max, int(df_clean[kms_col].mean()))
         
-        # Construct prediction input matrix mapping structure perfectly
+        # Construct prediction row mapping structure
         user_row = pd.DataFrame(0, index=[0], columns=X.columns)
-        if 'Year' in user_row.columns: user_row['Year'] = year_in
-        if 'Present_Price' in user_row.columns: user_row['Present_Price'] = present_in
-        if 'Kms_Driven' in user_row.columns: user_row['Kms_Driven'] = kms_in
+        if year_col in user_row.columns: user_row[year_col] = year_in
+        if present_price_col in user_row.columns: user_row[present_price_col] = present_in
+        if kms_col in user_row.columns: user_row[kms_col] = kms_in
         
         # Predict price
         user_scaled = scaler.transform(user_row)
