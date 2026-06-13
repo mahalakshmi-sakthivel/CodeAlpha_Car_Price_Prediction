@@ -8,7 +8,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
-# 1. Condition: Handle error and warning messages cleanly
+# Suppress all background system and version warnings
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -16,22 +16,21 @@ warnings.filterwarnings('ignore')
 st.set_page_config(page_title="Car Price Prediction", page_icon="🚗", layout="wide")
 
 st.title("🚗 Car Price Prediction Dashboard")
-st.markdown("Developed for **CodeAlpha Data Science Internship**. Built using **Pandas, Scikit-learn, and Matplotlib**[cite: 1, 43].")
+st.markdown("Developed for **CodeAlpha Data Science Internship**. Built using **Pandas, Scikit-learn, and Matplotlib**.")
 
-# 2. Condition: Handle data preprocessing and feature engineering safely [cite: 43]
 try:
-    # Load the extracted dataset
-    df = pd.read_csv('car_data.csv')
-    df.columns = df.columns.str.strip() # Clean column names
+    # Modified to look for the exact file name format from your data information
+    df = pd.read_csv('car data.csv')
+    df.columns = df.columns.str.strip() # Clean hidden trailing spaces in columns
     
-    st.subheader("📋 1. Dataset Preview (Pandas DataFrame) [cite: 43]")
+    st.subheader("📋 1. Dataset Preview (Pandas DataFrame)")
     st.dataframe(df.head(), use_container_width=True)
     
-    # Feature Engineering & Preprocessing [cite: 43]
-    # Identify target column (Selling_Price) [cite: 37]
+    # Feature Engineering & Preprocessing
+    # Auto-detect target column naming schemes (Selling_Price)
     target_col = 'Selling_Price' if 'Selling_Price' in df.columns else 'Price'
     
-    # Drop unique string identifiers like Car_Name to prevent overfitting
+    # Drop unique string identifiers like Car_Name to prevent model overfitting
     if 'Car_Name' in df.columns:
         df_clean = df.drop(columns=['Car_Name'])
     else:
@@ -52,14 +51,14 @@ try:
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)
     
-    # 3. Condition: Train a Regression Model [cite: 42]
+    # Train the Regression Model
     model = LinearRegression()
     model.fit(X_train_scaled, y_train)
     
     # Model Predictions
     y_pred = model.predict(X_test_scaled)
     
-    # 4. Condition: Model Evaluation Metrics [cite: 43]
+    # Model Evaluation Metrics
     mae = mean_absolute_error(y_test, y_pred)
     mse = mean_squared_error(y_test, y_pred)
     r2 = r2_score(y_test, y_pred)
@@ -68,21 +67,20 @@ try:
     col_left, col_right = st.columns([1, 1])
     
     with col_left:
-        st.subheader("📊 2. Regression Model Evaluation ")
+        st.subheader("📊 2. Regression Model Evaluation")
         st.metric(label="R-squared (R² Score / Prediction Accuracy)", value=f"{r2 * 100:.2f}%")
         st.metric(label="Mean Absolute Error (MAE)", value=f"{mae:.2f} Lakhs")
         st.metric(label="Mean Squared Error (MSE)", value=f"{mse:.2f}")
         
-        # 5. Condition: Understand Real-World Applications [cite: 44]
         st.info("""
-        💡 **Real-World Application:** Automotive platforms (like CarDekho or Truebil) use regression algorithms to instantly evaluate a car's fair valuation[cite: 4, 44]. By analyzing numerical trends like depreciation (Year), mileage (Kms_Driven), and luxury features (Present_Price), businesses automate buying price estimates[cite: 4, 42].
+        💡 **Real-World Application:** Automotive platforms use regression algorithms to instantly evaluate a car's fair valuation. By analyzing numerical trends like depreciation (Year), mileage (Kms_Driven), and luxury features (Present_Price), businesses automate buying price estimates.
         """)
 
     with col_right:
         st.subheader("🔮 3. Interactive Pricing Sandbox")
-        st.write("Adjust the features to predict a used car price live[cite: 42]:")
+        st.write("Adjust the features to predict a used car price live:")
         
-        # Build dynamic sliders based on dataset thresholds [cite: 27]
+        # Build dynamic sliders based on dataset thresholds
         yr_min, yr_max = int(df_clean['Year'].min()), int(df_clean['Year'].max())
         year_in = st.slider("Vehicle Model Year", yr_min, yr_max, yr_max)
         
@@ -105,8 +103,8 @@ try:
 
     st.markdown("---")
     
-    # 6. Condition: Use Matplotlib for Workflow Visualizations [cite: 43]
-    st.subheader("📈 4. Visualizing Results (Matplotlib) [cite: 43]")
+    # Visualizing Results using Matplotlib
+    st.subheader("📈 4. Visualizing Results (Matplotlib)")
     fig, ax = plt.subplots(figsize=(10, 4))
     plt.scatter(y_test, y_pred, alpha=0.7, color='dodgerblue', label='Predicted Points')
     plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', lw=2, label='Perfect Fit Line')
@@ -118,4 +116,4 @@ try:
     st.pyplot(fig)
 
 except FileNotFoundError:
-    st.error("⚠️ Data File Error: Please verify that 'car_data.csv' is saved directly inside your active project directory folder.")
+    st.error("⚠️ Data File Error: Please verify that your file is named exactly 'car data.csv' and uploaded directly inside your active repository.")
